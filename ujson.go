@@ -201,15 +201,14 @@ func (j *JSON) MaybeBool() (bool, error) {
 // Array guarantees the return of an `[]*JSON` (with optional default)
 //
 // useful when you explicitly want an `bool` in a single value return context:
-//     myFunc(js.Get("param1").Array(), js.Get("optional_param").Array(&[]interface{}{"string", 1, 1.1, false}))
-func (j *JSON) Array(args ...*[]interface{}) []*JSON {
+//     myFunc(js.Get("param1").Array(), js.Get("optional_param").Array([]interface{}{"string", 1, 1.1, false}))
+func (j *JSON) Array(args ...[]interface{}) []*JSON {
 	var def []*JSON
-	var ret []*JSON
 
 	switch len(args) {
 	case 0:
 	case 1:
-		for _, val := range *args[0] {
+		for _, val := range args[0] {
 			def = append(def, &JSON{val})
 		}
 	default:
@@ -218,19 +217,20 @@ func (j *JSON) Array(args ...*[]interface{}) []*JSON {
 
 	a, err := j.MaybeArray()
 	if err == nil {
-		for _, val := range *a {
-			ret = append(ret, &JSON{val})
-		}
-		return ret
+		return a
 	}
 
 	return def
 }
 
 // MaybeArray type asserts to `*[]interface{}`
-func (j *JSON) MaybeArray() (*[]interface{}, error) {
+func (j *JSON) MaybeArray() ([]*JSON, error) {
+	var ret []*JSON
 	if a, ok := (j.root).(*[]interface{}); ok {
-		return a, nil
+		for _, val := range *a {
+			ret = append(ret, &JSON{val})
+		}
+		return ret, nil
 	}
 	return nil, errors.New("type assertion to *[]interface{} failed")
 }

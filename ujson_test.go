@@ -59,7 +59,7 @@ func TestDecode(t *testing.T) {
 	}
 
 	fallback := []interface{}{"string", 1, true, 2.3}
-	testArrayFallback := obj.Get("non-existant").Array(&fallback)
+	testArrayFallback := obj.Get("non-existant").Array(fallback)
 	if len(testArrayFallback) != len(fallback) {
 		t.Fatalf(`length of array (%d) should == %d`, len(testArrayFallback), len(fallback))
 	} else if testArrayFallback[0].String() != "string" {
