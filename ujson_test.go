@@ -65,11 +65,11 @@ func TestDecode(t *testing.T) {
 	} else if testArrayFallback[0].String() != "string" {
 		t.Fatalf(`first element of array (%s) should == "string"`, testArrayFallback[0])
 	} else if testArrayFallback[1].Int64() != 1 {
-		t.Fatalf(`second element of array (%d) should == 15`, testArrayFallback[1])
+		t.Fatalf(`second element of array (%d) should == 1`, testArrayFallback[1])
 	} else if !testArrayFallback[2].Bool() {
 		t.Fatalf(`third element of array (%s) should == true`, testArrayFallback[2])
 	} else if testArrayFallback[3].Float64() != 2.3 {
-		t.Fatalf(`fourth element of array (%f) should == 3.14`, testArrayFallback[3])
+		t.Fatalf(`fourth element of array (%f) should == 2.3`, testArrayFallback[3])
 	}
 }
 
