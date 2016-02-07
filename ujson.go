@@ -6,20 +6,17 @@ import (
 )
 
 type JSON struct {
-	Root interface{}
+	root interface{}
 }
 
 func NewFromBytes(data []byte) (*JSON, error) {
 	j := &JSON{}
-	if len(data) < 2 { // Need at least "{}"
-		return nil, errors.New("no data passed in")
-	}
 	dec := NewDecoder(simpleStore{}, data)
 	root, err := dec.Decode()
 	if err != nil {
 		return nil, err
 	}
-	j.Root = root
+	j.root = root
 	return j, nil
 }
 
@@ -65,7 +62,7 @@ func (j *JSON) Map(args ...map[string]interface{}) map[string]interface{} {
 
 // MaybeMap type asserts to `map`
 func (j *JSON) MaybeMap() (map[string]interface{}, error) {
-	if m, ok := (j.Root).(map[string]interface{}); ok {
+	if m, ok := (j.root).(map[string]interface{}); ok {
 		return m, nil
 	}
 	return nil, errors.New("type assertion to map[string]interface{} failed")
@@ -96,7 +93,7 @@ func (j *JSON) String(args ...string) string {
 
 // MaybeString type asserts to `string`
 func (j *JSON) MaybeString() (string, error) {
-	if s, ok := (j.Root).(string); ok {
+	if s, ok := (j.root).(string); ok {
 		return s, nil
 	}
 	return "", errors.New("type assertion to string failed")
@@ -127,19 +124,93 @@ func (j *JSON) Int64(args ...int64) int64 {
 
 // MaybeInt64 type asserts and parses an `int64`
 func (j *JSON) MaybeInt64() (int64, error) {
-	if n, ok := (j.Root).(numeric); ok {
+	if n, ok := (j.root).(numeric); ok {
 		return n.Int64()
+	}
+	if n, ok := (j.root).(int); ok {
+		return int64(n), nil
 	}
 	return -1, errors.New("type assertion to numeric failed")
 }
 
-func (j *JSON) Array(args ...*[]interface{}) *[]interface{} {
-	var def *[]interface{}
+// Float64 guarantees the return of an `float64` (with optional default)
+//
+// useful when you explicitly want an `float64` in a single value return context:
+//     myFunc(js.Get("param1").Float64(), js.Get("optional_param").Float64(51.15))
+func (j *JSON) Float64(args ...float64) float64 {
+	var def float64
 
 	switch len(args) {
 	case 0:
 	case 1:
 		def = args[0]
+	default:
+		log.Panicf("float64() received too many arguments %d", len(args))
+	}
+
+	i, err := j.MaybeFloat64()
+	if err == nil {
+		return i
+	}
+
+	return def
+}
+
+// MaybeFloat64 type asserts and parses an `float64`
+func (j *JSON) MaybeFloat64() (float64, error) {
+	if n, ok := (j.root).(numeric); ok {
+		return n.Float64()
+	}
+	if n, ok := (j.root).(float64); ok {
+		return n, nil
+	}
+	return -1, errors.New("type assertion to numeric failed")
+}
+
+// Bool guarantees the return of an `bool` (with optional default)
+//
+// useful when you explicitly want an `bool` in a single value return context:
+//     myFunc(js.Get("param1").Bool(), js.Get("optional_param").Bool(true))
+func (j *JSON) Bool(args ...bool) bool {
+	var def bool
+
+	switch len(args) {
+	case 0:
+	case 1:
+		def = args[0]
+	default:
+		log.Panicf("bool() received too many arguments %d", len(args))
+	}
+
+	b, err := j.MaybeBool()
+	if err == nil {
+		return b
+	}
+
+	return def
+}
+
+// MaybeBool type asserts and parses an `bool`
+func (j *JSON) MaybeBool() (bool, error) {
+	if b, ok := (j.root).(bool); ok {
+		return b, nil
+	}
+	return false, errors.New("type assertion to bool failed")
+}
+
+// Array guarantees the return of an `[]*JSON` (with optional default)
+//
+// useful when you explicitly want an `bool` in a single value return context:
+//     myFunc(js.Get("param1").Array(), js.Get("optional_param").Array([]interface{}{"string", 1, 1.1, false}))
+func (j *JSON) Array(args ...[]interface{}) []*JSON {
+	var def []*JSON
+
+	switch len(args) {
+	case 0:
+	case 1:
+		for _, val := range args[0] {
+			def = append(def, &JSON{val})
+		}
 	default:
 		log.Panicf("Array() received too many arguments %d", len(args))
 	}
@@ -152,44 +223,14 @@ func (j *JSON) Array(args ...*[]interface{}) *[]interface{} {
 	return def
 }
 
-func (j *JSON) MaybeArray() (*[]interface{}, error) {
-	if a, ok := (j.Root).(*[]interface{}); ok {
-		return a, nil
+// MaybeArray type asserts to `*[]interface{}`
+func (j *JSON) MaybeArray() ([]*JSON, error) {
+	var ret []*JSON
+	if a, ok := (j.root).(*[]interface{}); ok {
+		for _, val := range *a {
+			ret = append(ret, &JSON{val})
+		}
+		return ret, nil
 	}
-	return nil, errors.New("type assertion to []interface{} failed")
-}
-
-func (j *JSON) Float64(args ...float64) float64 {
-	var def float64
-
-	switch len(args) {
-	case 0:
-	case 1:
-		def = args[0]
-	default:
-		log.Panicf("Float64() received too many arguments %d", len(args))
-	}
-
-	i, err := j.MaybeFloat64()
-	if err == nil {
-		return i
-	}
-
-	return def
-}
-
-// MaybeInt64 type asserts and parses an `int64`
-func (j *JSON) MaybeFloat64() (float64, error) {
-	if n, ok := (j.Root).(numeric); ok {
-		return n.Float64()
-	}
-	return -1, errors.New("type assertion to numeric failed")
-}
-
-func (j *JSON) Bool() bool {
-	if b, ok := (j.Root).(bool); ok {
-		return b
-	}
-
-	return false
+	return nil, errors.New("type assertion to *[]interface{} failed")
 }
